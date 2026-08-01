@@ -474,7 +474,7 @@ CI runs Python validation on Ubuntu and Windows, and runs the start-story Pester
 
 # Packaging a clean repository ZIP
 
-**Do not** manually zip the repository folder in Explorer, Finder, or with an unfiltered `zip -r`. That commonly includes `.git/`, `dist/`, and `__pycache__/`.
+**Do not** manually zip the repository folder in Explorer, Finder, or with an unfiltered `zip -r`. That commonly includes `.git/`, `dist/`, and `__pycache__/`, and it is easy to ship an incomplete tree.
 
 Before publishing, generate the public archive with the packaging tool only:
 
@@ -482,17 +482,18 @@ Before publishing, generate the public archive with the packaging tool only:
 python tools/package_repo.py
 ```
 
-Publish this file:
+Publish only this file after the command reports completeness checks passed:
 
 ```text
 dist/corelogic-ai-skills.zip
 ```
 
-`package_repo.py` prefers `git archive` (committed tree) and otherwise builds a filtered working-tree zip that excludes `.git`, caches, and `dist/`. Equivalent manual command:
+Behavior:
 
-```bash
-git archive --format=zip --output=corelogic-ai-skills.zip HEAD
-```
+- Default: filtered **working-tree** ZIP (includes skill `scripts/` even if not yet committed)
+- Excludes `.git/`, `dist/`, `__pycache__/`, and similar junk
+- Fails if required skill/tool files are missing (“incomplete and must not be published”)
+- Optional: `python tools/package_repo.py --git-archive` packs `HEAD` only when the working tree is clean
 
 # Security
 

@@ -11,7 +11,7 @@
 param()
 
 $ErrorActionPreference = "Stop"
-. "$PSScriptRoot\..\scripts\common.ps1"
+. (Join-Path $PSScriptRoot "_dotSourceCommon.ps1")
 
 $script:Passed = 0
 $script:Failed = 0

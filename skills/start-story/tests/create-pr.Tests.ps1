@@ -1,6 +1,6 @@
 #Requires -Version 5.1
 BeforeAll {
-    . "$PSScriptRoot/../scripts/common.ps1"
+    . (Join-Path $PSScriptRoot "_dotSourceCommon.ps1")
 }
 
 Describe "PR source branch guards" {

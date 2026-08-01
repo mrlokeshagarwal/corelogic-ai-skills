@@ -1,6 +1,6 @@
 #Requires -Version 5.1
 BeforeAll {
-    . "$PSScriptRoot/../scripts/common.ps1"
+    . (Join-Path $PSScriptRoot "_dotSourceCommon.ps1")
 
     $script:Root = Join-Path $env:TEMP "start-story-branch-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
     $script:GitRoot = Join-Path $script:Root "git-repo"

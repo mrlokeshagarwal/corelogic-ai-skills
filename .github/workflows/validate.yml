@@ -18,16 +18,33 @@ jobs:
           python -m unittest discover -s skills/dotnet-upgrade/tests -p 'test_*.py' -v
           python -m unittest discover -s tools -p 'test_*.py' -v
       - run: python tools/package_skill.py --all
-      - run: python tools/package_repo.py
-      - name: Verify published repo zip is clean
-        run: |
-          python -c "import zipfile; names=zipfile.ZipFile('dist/corelogic-ai-skills.zip').namelist(); bad=[n for n in names if n.replace('\\\\','/').startswith('.git/') or '__pycache__' in n or n.replace('\\\\','/').startswith('dist/') or n.endswith('.pyc')]; assert not bad, bad"
+      - name: Build and verify complete release ZIP
+        run: python tools/package_repo.py
       - run: python tools/smoke_install_paths.py
 
   start-story-tests:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Ensure start-story scripts are present
+        shell: pwsh
+        run: |
+          $required = @(
+            'skills/start-story/scripts/common.ps1',
+            'skills/start-story/scripts/create-branch.ps1',
+            'skills/start-story/scripts/create-pr.ps1',
+            'skills/start-story/scripts/detect-repo.ps1',
+            'skills/start-story/scripts/fetch-work-item.ps1',
+            'skills/start-story/scripts/status-summary.ps1',
+            'skills/start-story/scripts/validate.ps1'
+          )
+          $missing = @($required | Where-Object { -not (Test-Path -LiteralPath $_) })
+          if ($missing.Count -gt 0) {
+            Write-Host 'Checked-out start-story tree:'
+            Get-ChildItem skills/start-story -Recurse | Select-Object FullName
+            throw "Missing start-story scripts (often caused by a bare Scripts/ gitignore rule on Windows):`n$($missing -join "`n")"
+          }
+          Get-ChildItem skills/start-story/scripts | Format-Table Name, Length
       - name: Parse start-story PowerShell scripts
         shell: pwsh
         run: |
