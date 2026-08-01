@@ -3,8 +3,10 @@ __pycache__/
 .pytest_cache/
 .venv/
 venv/
-Scripts/
-Lib/
+# Root-only leftovers from a broken local Python/ensurepip install.
+# Do NOT use bare Scripts/ — on Windows that also ignores skills/**/scripts/.
+/Scripts/
+/Lib/
 dist/
 *.egg-info/
 .DS_Store
