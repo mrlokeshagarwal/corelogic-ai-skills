@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+Scripts/
+Lib/
+dist/
+*.egg-info/
+.DS_Store
+.dotnet-upgrade/

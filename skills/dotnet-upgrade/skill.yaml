@@ -1,0 +1,15 @@
+name: dotnet-upgrade
+version: 0.1.0
+title: .NET Upgrade
+description: Approval-gated assessment, upgrade, security review, and validation for local .NET repositories.
+category: dotnet
+tags: [dotnet, nuget, modernization, security, devops]
+portability:
+  level: 2
+  notes: Requires local repository read access; write, shell, Git, and web access improve execution.
+capabilities:
+  required: [file-read, repository-search]
+  optional: [file-write, shell, git, web]
+platforms: [claude, cursor, opencode, chatgpt, codex]
+entrypoint: SKILL.md
+license: MIT

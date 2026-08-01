@@ -1,0 +1,19 @@
+name: Validate skills
+on: [push, pull_request]
+jobs:
+  validate:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python tools/validate_library.py
+      - run: python skills/dotnet-upgrade/tests/test_inspect_repo.py
+      - run: python skills/dotnet-upgrade/tests/test_compare_reports.py
+      - run: python tools/package_skill.py --all
+      - run: python tools/smoke_install_paths.py

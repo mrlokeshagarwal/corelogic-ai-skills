@@ -1,0 +1,8 @@
+---
+description: Assess and safely upgrade a local .NET repository using an approval gate
+alwaysApply: false
+---
+
+When asked to upgrade, modernize, secure, or update dependencies in a .NET repository, read and follow `.cursor/skills/dotnet-upgrade/SKILL.md`.
+
+Do not modify repository files until the assessment and proposed plan have been presented and the user explicitly approves them. Use Cursor's repository search, file editing, terminal, and Git capabilities to execute the approved workflow.

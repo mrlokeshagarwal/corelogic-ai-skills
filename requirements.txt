@@ -1,0 +1,3 @@
+# Runtime dependencies for library tooling.
+# Validation and inspect helpers use the Python standard library only.
+# Add third-party packages here if future tools require them.
