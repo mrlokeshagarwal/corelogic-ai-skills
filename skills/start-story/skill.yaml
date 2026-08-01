@@ -1,0 +1,15 @@
+name: start-story
+version: 0.1.0
+title: Start Story
+description: Approval-gated Azure DevOps work-item workflow that fetches a story, branches, validates, and opens a pull request without merging.
+category: devops
+tags: [azure-devops, git, pull-request, workflow, powershell]
+portability:
+  level: 2
+  notes: Requires PowerShell (pwsh preferred), Git, AZURE_DEVOPS_PAT, and local repository access. Scripts are PowerShell-first; validation kinds support Windows and Unix shells.
+capabilities:
+  required: [file-read, shell, git]
+  optional: [file-write, web]
+platforms: [claude, cursor, opencode, chatgpt, codex]
+entrypoint: SKILL.md
+license: MIT

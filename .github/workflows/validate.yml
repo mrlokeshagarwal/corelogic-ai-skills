@@ -12,8 +12,35 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: python tools/validate_library.py
-      - run: python skills/dotnet-upgrade/tests/test_inspect_repo.py
-      - run: python skills/dotnet-upgrade/tests/test_compare_reports.py
+      - name: Validate library and discover Python tests
+        run: |
+          python tools/validate_library.py
+          python -m unittest discover -s skills/dotnet-upgrade/tests -p 'test_*.py' -v
+          python -m unittest discover -s tools -p 'test_*.py' -v
       - run: python tools/package_skill.py --all
+      - run: python tools/package_repo.py
+      - name: Verify published repo zip is clean
+        run: |
+          python -c "import zipfile; names=zipfile.ZipFile('dist/corelogic-ai-skills.zip').namelist(); bad=[n for n in names if n.replace('\\\\','/').startswith('.git/') or '__pycache__' in n or n.replace('\\\\','/').startswith('dist/') or n.endswith('.pyc')]; assert not bad, bad"
       - run: python tools/smoke_install_paths.py
+
+  start-story-tests:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse start-story PowerShell scripts
+        shell: pwsh
+        run: |
+          $failed = $false
+          Get-ChildItem skills/start-story -Recurse -Filter *.ps1 | ForEach-Object {
+            $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$errors)
+            if ($errors) {
+              $failed = $true
+              Write-Host "::error file=$($_.FullName)::$($errors[0].Message)"
+            }
+          }
+          if ($failed) { exit 1 }
+      - name: Run start-story tests
+        shell: pwsh
+        run: ./skills/start-story/tests/run-tests.ps1

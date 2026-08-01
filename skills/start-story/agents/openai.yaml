@@ -1,0 +1,3 @@
+interface:
+  display_name: "Start Story"
+  short_description: "Fetch an Azure DevOps work item, implement, validate, and open a PR with human checkpoints"

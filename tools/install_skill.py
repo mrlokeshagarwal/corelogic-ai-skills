@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 import shutil
 from pathlib import Path
 
@@ -74,7 +75,6 @@ def resolve_skills(skills: list[str] | None, all_skills: bool) -> list[str]:
     unknown = [name for name in skills if not (ROOT / "skills" / name).is_dir()]
     if unknown:
         raise SystemExit(f"Unknown skill(s): {', '.join(unknown)}")
-    # Preserve order while removing duplicates
     seen: set[str] = set()
     ordered: list[str] = []
     for name in skills:
@@ -85,6 +85,7 @@ def resolve_skills(skills: list[str] | None, all_skills: bool) -> list[str]:
 
 
 def replace_tree(source: Path, destination: Path) -> None:
+    """Replace an installed skill tree. User config must live outside this folder."""
     destination.parent.mkdir(parents=True, exist_ok=True)
     if destination.exists() or destination.is_symlink():
         if destination.is_dir() and not destination.is_symlink():
@@ -94,13 +95,68 @@ def replace_tree(source: Path, destination: Path) -> None:
     shutil.copytree(source, destination)
 
 
-def append_once(path: Path, marker: str, content: str) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
+def upsert_managed_block(path: Path, skill: str, content: str) -> None:
+    """Insert or replace a managed Codex AGENTS.md block for a skill."""
+    start = f"<!-- corelogic-ai-skills:start:{skill} -->"
+    end = f"<!-- corelogic-ai-skills:end:{skill} -->"
+    block = f"{start}\n{content.rstrip()}\n{end}"
+
     existing = path.read_text(encoding="utf-8") if path.exists() else ""
-    if marker in existing:
-        return
-    prefix = "" if not existing or existing.endswith("\n") else "\n"
-    path.write_text(existing + prefix + content.rstrip() + "\n", encoding="utf-8")
+    existing = remove_legacy_unmanaged_section(existing, content)
+
+    pattern = re.compile(
+        rf"{re.escape(start)}.*?{re.escape(end)}",
+        re.DOTALL,
+    )
+    if pattern.search(existing):
+        updated = pattern.sub(block, existing)
+    else:
+        separator = "" if not existing or existing.endswith("\n") else "\n"
+        if existing and not existing.endswith("\n\n"):
+            separator = "\n" if existing.endswith("\n") else "\n\n"
+        updated = existing + separator + block + "\n"
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(updated, encoding="utf-8")
+
+
+def remove_legacy_unmanaged_section(text: str, snippet: str) -> str:
+    """Remove a pre-marker heading section that matches the snippet's first H2."""
+    heading = next(
+        (line.strip() for line in snippet.splitlines() if line.startswith("## ")),
+        None,
+    )
+    if not heading or heading not in text:
+        return text
+
+    start_token = "<!-- corelogic-ai-skills:start:"
+    lines = text.splitlines(keepends=True)
+    out: list[str] = []
+    i = 0
+    while i < len(lines):
+        stripped = lines[i].strip()
+        if stripped == heading:
+            # Keep if this heading is inside a managed block.
+            preceding = "".join(out)
+            if start_token in preceding and preceding.rfind(start_token) > preceding.rfind(
+                "<!-- corelogic-ai-skills:end:"
+            ):
+                out.append(lines[i])
+                i += 1
+                continue
+            i += 1
+            while i < len(lines):
+                nxt = lines[i].strip()
+                if nxt.startswith("## ") or nxt.startswith("<!-- corelogic-ai-skills:"):
+                    break
+                i += 1
+            # Drop one trailing blank line after the removed section.
+            if out and out[-1].strip() == "":
+                out.pop()
+            continue
+        out.append(lines[i])
+        i += 1
+    return "".join(out)
 
 
 def global_destination(platform: str, home: Path) -> Path | None:
@@ -130,11 +186,7 @@ def install_codex_snippet(skill: str, agents_md: Path, *, global_paths: bool) ->
     if global_paths:
         snippet = snippet.replace(".agents/skills/", "~/.agents/skills/")
 
-    marker = next(
-        (line.strip() for line in snippet.splitlines() if line.startswith("## ")),
-        f"## {skill}",
-    )
-    append_once(agents_md, marker, snippet)
+    upsert_managed_block(agents_md, skill, snippet)
 
 
 def install_cursor_rule(skill: str, target: Path) -> None:
@@ -145,6 +197,18 @@ def install_cursor_rule(skill: str, target: Path) -> None:
     rules = target / ".cursor" / "rules"
     rules.mkdir(parents=True, exist_ok=True)
     shutil.copy2(adapter, rules / f"{skill}.mdc")
+
+
+def config_hint(skill: str) -> None:
+    if skill != "start-story":
+        return
+    print(
+        "Note: start-story user config belongs outside the skill folder "
+        "(survives updates). Prefer:"
+    )
+    print("  Windows: %USERPROFILE%\\.corelogic-ai-skills\\start-story\\config.json")
+    print("  macOS/Linux: ~/.config/corelogic-ai-skills/start-story/config.json")
+    print("  Project: <repo>/.corelogic-ai-skills/start-story/config.json")
 
 
 def install_project(source: Path, skill: str, target: Path, platform: str) -> None:
@@ -203,6 +267,7 @@ def main() -> None:
             source = ROOT / "skills" / skill
             for platform in args.platform:
                 install_global(source, skill, platform, home)
+            config_hint(skill)
         return
 
     target = Path(args.target).expanduser().resolve()
@@ -211,6 +276,7 @@ def main() -> None:
         source = ROOT / "skills" / skill
         for platform in args.platform:
             install_project(source, skill, target, platform)
+        config_hint(skill)
 
 
 if __name__ == "__main__":

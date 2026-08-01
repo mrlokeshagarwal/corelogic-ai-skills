@@ -89,17 +89,27 @@ def main() -> int:
 
             snippet = ROOT / "adapters" / "codex" / f"{skill_name}.snippet.md"
             if snippet.exists():
-                marker = next(
-                    line.strip()
-                    for line in snippet.read_text(encoding="utf-8").splitlines()
-                    if line.startswith("## ")
-                )
-                agents = (home / ".agents/AGENTS.md").read_text(encoding="utf-8")
-                if marker in agents:
-                    print(f"PASS: {skill_name} codex snippet")
+                agents_path = home / ".agents/AGENTS.md"
+                agents = agents_path.read_text(encoding="utf-8")
+                start = f"<!-- corelogic-ai-skills:start:{skill_name} -->"
+                end = f"<!-- corelogic-ai-skills:end:{skill_name} -->"
+                if start in agents and end in agents:
+                    print(f"PASS: {skill_name} codex managed block")
                 else:
-                    print(f"FAIL: {skill_name} codex snippet")
+                    print(f"FAIL: {skill_name} codex managed block")
                     failures.append(f"{skill_name}_codex_snippet")
+
+                install_skill.upsert_managed_block(
+                    agents_path,
+                    skill_name,
+                    "## Updated workflow\n\nUpdated by smoke test.",
+                )
+                agents2 = agents_path.read_text(encoding="utf-8")
+                if "Updated by smoke test." in agents2 and agents2.count(start) == 1:
+                    print(f"PASS: {skill_name} codex upsert")
+                else:
+                    print(f"FAIL: {skill_name} codex upsert")
+                    failures.append(f"{skill_name}_codex_upsert")
 
         # Multi-skill CLI against a fake second skill in a temp library layout is
         # unnecessary; exercise argparse via --help and --all dry-run discovery.

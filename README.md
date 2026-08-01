@@ -6,9 +6,14 @@ CoreLogic AI Skills keeps one canonical definition for each workflow and supplie
 
 ## Available skills
 
-| Skill | Status | Purpose |
-|---|---|---|
-| [`dotnet-upgrade`](skills/dotnet-upgrade/) | Beta | Assess, plan, upgrade, secure, and validate a local .NET repository. Repository changes require explicit approval after assessment. |
+
+| Skill                                      | Status | Purpose                                                                                                                             |
+| ------------------------------------------ | ------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `[dotnet-upgrade](skills/dotnet-upgrade/)` | Beta   | Assess, plan, upgrade, secure, and validate a local .NET repository. Repository changes require explicit approval after assessment. |
+| `[start-story](skills/start-story/)`       | Beta   | Fetch an Azure DevOps work item, branch, implement with checkpoints, validate, and open a pull request without merging.             |
+
+
+
 
 ## How `dotnet-upgrade` behaves
 
@@ -19,6 +24,16 @@ The skill follows a mandatory two-stage workflow:
 
 The skill must not deploy an application, expose private-feed credentials, apply production database migrations, or claim success without build and test evidence.
 
+## How `start-story` behaves
+
+The skill follows a checkpointed work-item workflow:
+
+1. **Fetch** — load the Azure DevOps work item and propose repo scope.
+2. **Branch / implement / validate** — create or reuse the story branch, implement only the story, and run repo-kind validation.
+3. **PR / handoff** — commit named files, open a PR linked to the work item, and stop for manual review.
+
+It must not merge, auto-complete, or auto-review pull requests, and must not run `git add .`. Persistent `config.json` (from `config.example.json`) lives **outside** the installed skill folder so updates do not delete it — see `skills/start-story/README.md`. Auth is `AZURE_DEVOPS_PAT` only.
+
 ## Prerequisites
 
 The selected agent must be able to access the local repository and, for full execution, run commands inside it.
@@ -27,8 +42,8 @@ Recommended local prerequisites:
 
 - Git
 - Python 3.10 or later for the included helper tools
-- An installed .NET SDK suitable for assessing the current solution
-- Access to any required private NuGet feeds through the platform's normal credential provider
+- For `dotnet-upgrade`: an installed .NET SDK suitable for assessing the current solution, and access to any required private NuGet feeds
+- For `start-story`: PowerShell 7+ (`pwsh`) preferred, or Windows PowerShell 5.1+; Azure DevOps PAT in `AZURE_DEVOPS_PAT` with Work Items (Read) and Code (Read & Write)
 
 On Windows, if `python` is not on `PATH`, use the Python launcher (`py -3`) in place of `python` in the commands below.
 
@@ -58,7 +73,7 @@ Install several skills and platforms in one command by repeating `--skill` and `
 ```bash
 python tools/install_skill.py \
   --skill dotnet-upgrade \
-  --skill another-skill \
+  --skill start-story \
   --global \
   --platform claude \
   --platform cursor \
@@ -89,6 +104,8 @@ py -3 .\tools\install_skill.py `
   --platform opencode `
   --platform codex
 ```
+
+
 
 ## Claude Code
 
@@ -134,7 +151,7 @@ The skill can also be invoked directly when supported:
 /dotnet-upgrade
 ```
 
-Official documentation: https://code.claude.com/docs/en/slash-commands
+Official documentation: [https://code.claude.com/docs/en/slash-commands](https://code.claude.com/docs/en/slash-commands)
 
 ## Claude Desktop / Claude web
 
@@ -157,7 +174,7 @@ Then:
 
 To work on a local repository, Claude Desktop must also have an approved filesystem or development integration that exposes the repository. Installing a skill does not grant filesystem or terminal access by itself.
 
-Official documentation: https://support.claude.com/en/articles/12512180-use-skills-in-claude
+Official documentation: [https://support.claude.com/en/articles/12512180-use-skills-in-claude](https://support.claude.com/en/articles/12512180-use-skills-in-claude)
 
 ## OpenCode
 
@@ -198,7 +215,7 @@ upgrade plan. Do not change repository files until I approve the plan.
 
 OpenCode also discovers compatible global skills from `~/.claude/skills` and `~/.agents/skills`. Installing separately under `~/.config/opencode/skills` avoids relying on compatibility paths and makes ownership explicit.
 
-Official documentation: https://opencode.ai/docs/skills
+Official documentation: [https://opencode.ai/docs/skills](https://opencode.ai/docs/skills)
 
 ## Codex
 
@@ -255,6 +272,8 @@ The resulting location is:
 ~/.cursor/skills/dotnet-upgrade/
 ```
 
+
+
 ### Project install
 
 ```bash
@@ -273,7 +292,7 @@ This creates:
 
 The skill folder is the canonical install. The optional `.mdc` rule reinforces discovery when the agent is asked about .NET upgrades.
 
-Official documentation: https://cursor.com/docs/skills
+Official documentation: [https://cursor.com/docs/skills](https://cursor.com/docs/skills)
 
 ## ChatGPT
 
@@ -304,7 +323,7 @@ Personal skills may need to be installed separately on desktop and web/mobile su
 
 A ChatGPT skill does not automatically gain access to a repository open in VS Code. The repository must be uploaded, mounted, connected through an approved app, or exposed by the execution environment.
 
-Official documentation: https://help.openai.com/en/articles/20001066
+Official documentation: [https://help.openai.com/en/articles/20001066](https://help.openai.com/en/articles/20001066)
 
 # Updating a global installation
 
@@ -333,32 +352,34 @@ For project-level installs, rerun the `--target` command for each repository and
 
 # Uninstalling
 
+
+
 ### Global installs
 
 Remove the relevant folder:
 
 ```text
-Claude Code: ~/.claude/skills/dotnet-upgrade
-Cursor:      ~/.cursor/skills/dotnet-upgrade
-OpenCode:    ~/.config/opencode/skills/dotnet-upgrade
-Codex:       ~/.agents/skills/dotnet-upgrade
+Claude Code: ~/.claude/skills/<skill>
+Cursor:      ~/.cursor/skills/<skill>
+OpenCode:    ~/.config/opencode/skills/<skill>
+Codex:       ~/.agents/skills/<skill>
 ```
 
-For Codex, also remove the `## .NET upgrade workflow` section from `~/.agents/AGENTS.md` if it is no longer needed.
+For Codex, also remove the managed `<!-- corelogic-ai-skills:start:<skill> -->` … `end` block from `~/.agents/AGENTS.md` if it is no longer needed. User-level `start-story` config under `.corelogic-ai-skills/` or `~/.config/corelogic-ai-skills/` is separate and is not removed by uninstalling the skill folder.
 
 ### Project installs
 
 Remove the installed skill folder for each platform:
 
 ```text
-Claude Code: <repository>/.claude/skills/dotnet-upgrade
-Cursor:      <repository>/.cursor/skills/dotnet-upgrade
-             <repository>/.cursor/rules/dotnet-upgrade.mdc
-OpenCode:    <repository>/.opencode/skills/dotnet-upgrade
-Codex:       <repository>/.agents/skills/dotnet-upgrade
+Claude Code: <repository>/.claude/skills/<skill>
+Cursor:      <repository>/.cursor/skills/<skill>
+             <repository>/.cursor/rules/<skill>.mdc
+OpenCode:    <repository>/.opencode/skills/<skill>
+Codex:       <repository>/.agents/skills/<skill>
 ```
 
-For Codex, also remove the `## .NET upgrade workflow` section from the repository `AGENTS.md` if it was added only for this skill.
+For Codex, also remove the managed `<!-- corelogic-ai-skills:start:<skill> -->` … `end` block from the repository `AGENTS.md` if it was added only for this skill.
 
 ### Account-installed skills
 
@@ -382,25 +403,30 @@ To install a subset, repeat `--skill` instead of using `--all`.
 
 Project destinations:
 
+
 | Platform | Destination |
 |---|---|
-| Claude Code | `.claude/skills/dotnet-upgrade` |
-| Cursor | `.cursor/skills/dotnet-upgrade` plus optional `.cursor/rules/dotnet-upgrade.mdc` |
-| OpenCode | `.opencode/skills/dotnet-upgrade` |
-| Codex | `.agents/skills/dotnet-upgrade` plus an `AGENTS.md` discovery note |
-| ChatGPT | Upload packaged `dist/dotnet-upgrade/skill.zip`; no project-folder installation |
+| Claude Code | `.claude/skills/<skill>` |
+| Cursor | `.cursor/skills/<skill>` plus optional `.cursor/rules/<skill>.mdc` |
+| OpenCode | `.opencode/skills/<skill>` |
+| Codex | `.agents/skills/<skill>` plus a managed `AGENTS.md` discovery block |
+| ChatGPT | Upload packaged `dist/<skill>/skill.zip`; no project-folder installation |
+
+
+
 
 # Repository layout
 
 ```text
 corelogic-ai-skills/
 ├── skills/                 # canonical skill definitions
-│   └── dotnet-upgrade/
+│   ├── dotnet-upgrade/
+│   └── start-story/
 ├── adapters/               # thin platform discovery adapters
 ├── tools/                  # validation, installation, and packaging helpers
 ├── docs/                   # architecture and authoring guidance
 ├── requirements.txt        # optional third-party deps for future tooling
-├── dist/                   # generated packages (gitignored; created by package_skill.py)
+├── dist/                   # generated packages (gitignored)
 └── .github/workflows/      # continuous validation
 ```
 
@@ -412,6 +438,7 @@ corelogic-ai-skills/
 - Use platform-neutral capability language.
 - Use deterministic scripts for repeatable inspection.
 - Complete with evidence and state limitations transparently.
+- Keep user configuration outside replaceable installed skill trees.
 
 # Validate the library
 
@@ -419,32 +446,61 @@ From the repository root:
 
 ```bash
 python tools/validate_library.py
-python skills/dotnet-upgrade/tests/test_inspect_repo.py
-python skills/dotnet-upgrade/tests/test_compare_reports.py
+python -m unittest discover -s skills/dotnet-upgrade/tests -p 'test_*.py' -v
+python -m unittest discover -s tools -p 'test_*.py' -v
 python tools/package_skill.py --all
+python tools/package_repo.py
 python tools/smoke_install_paths.py
 ```
 
-On Windows, if needed:
+`start-story` PowerShell tests (Windows PowerShell or `pwsh`):
+
+```powershell
+powershell -NoProfile -File skills/start-story/tests/Invoke-StartStoryTests.ps1
+```
+
+On Windows, if `python` is missing from `PATH`:
 
 ```powershell
 py -3 tools\validate_library.py
-py -3 skills\dotnet-upgrade\tests\test_inspect_repo.py
-py -3 skills\dotnet-upgrade\tests\test_compare_reports.py
+py -3 -m unittest discover -s skills\dotnet-upgrade\tests -p 'test_*.py' -v
+py -3 -m unittest discover -s tools -p 'test_*.py' -v
 py -3 tools\package_skill.py --all
+py -3 tools\package_repo.py
 py -3 tools\smoke_install_paths.py
 ```
 
-These checks confirm skill frontmatter and references, inspection/compare helpers, the generated `skill.zip`, and installer destinations for Claude, Cursor, OpenCode, and Codex. They do not exercise live agent UIs or an end-to-end .NET upgrade.
+CI runs Python validation on Ubuntu and Windows, and runs the start-story Pester suite on Windows.
 
-CI runs the same validation on Ubuntu and Windows.
+# Packaging a clean repository ZIP
+
+**Do not** manually zip the repository folder in Explorer, Finder, or with an unfiltered `zip -r`. That commonly includes `.git/`, `dist/`, and `__pycache__/`.
+
+Before publishing, generate the public archive with the packaging tool only:
+
+```bash
+python tools/package_repo.py
+```
+
+Publish this file:
+
+```text
+dist/corelogic-ai-skills.zip
+```
+
+`package_repo.py` prefers `git archive` (committed tree) and otherwise builds a filtered working-tree zip that excludes `.git`, caches, and `dist/`. Equivalent manual command:
+
+```bash
+git archive --format=zip --output=corelogic-ai-skills.zip HEAD
+```
 
 # Security
 
-Review third-party skills before installing them. Skills can contain executable scripts and instructions that cause an agent to modify files or run commands. Use source control, inspect proposed changes, protect credentials, and keep the approval gate enabled.
+Review third-party skills before installing them. Skills can contain executable scripts and instructions that cause an agent to modify files or run commands. Use source control, inspect proposed changes, protect credentials, and keep approval gates enabled.
 
-Inspection reports from `scripts/inspect_repo.py` may include feed URLs or restore diagnostics. Keep them outside the repository, or in a gitignored path with `--inside-repo`, and do not commit them.
+For `start-story`, keep PATs in the environment only. Keep inspection/validation output that may include feed URLs or restore diagnostics out of commits.
 
 # Licence
 
 See [`LICENSE`](LICENSE).
+

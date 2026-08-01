@@ -9,3 +9,6 @@ dist/
 *.egg-info/
 .DS_Store
 .dotnet-upgrade/
+skills/*/config.json
+.corelogic-ai-skills/
+**/.corelogic-ai-skills/

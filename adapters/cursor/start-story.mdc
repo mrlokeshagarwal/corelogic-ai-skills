@@ -1,0 +1,8 @@
+---
+description: Start Azure DevOps work items with fetch, branch, validate, and PR checkpoints
+alwaysApply: false
+---
+
+When asked to start a story, resume an Azure DevOps work item, run `/start-story`, or open a PR from a `story/<id>-*` branch, read and follow `.cursor/skills/start-story/SKILL.md`.
+
+Keep the human checkpoints. Never merge or auto-review pull requests. Never run `git add .`. Use the skill's PowerShell scripts for ADO and git ceremony.

@@ -1,0 +1,36 @@
+{
+  "organization": "YOUR_ADO_ORG",
+  "project": "YOUR_ADO_PROJECT",
+  "baseBranch": "main",
+  "branchPrefix": "story",
+  "profile": null,
+  "ignorePaths": [
+    "appsettings*.json",
+    "*.env",
+    "**/bin/**",
+    "**/obj/**"
+  ],
+  "repos": {
+    "Repo-Name-As-In-Azure-DevOps": {
+      "path": "/path/to/local/clone",
+      "kind": "dotnet",
+      "solution": "YourSolution.sln"
+    },
+    "Example-Node-Repo": {
+      "path": "/path/to/web",
+      "kind": "node",
+      "buildCommand": "npm run build",
+      "testCommand": "npm test -- --run"
+    },
+    "Example-Custom-Repo": {
+      "path": "/path/to/api",
+      "kind": "custom",
+      "validateCommand": "make verify"
+    },
+    "Example-Sql-Repo": {
+      "path": "/path/to/db",
+      "kind": "manual",
+      "solution": null
+    }
+  }
+}
